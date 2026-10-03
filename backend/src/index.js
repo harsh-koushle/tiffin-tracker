@@ -33,11 +33,17 @@ if (!process.env.JWT_SECRET) {
   console.warn('WARNING: JWT_SECRET is not set. Set it in your environment before deploying.');
 }
 
-initDb()
-  .then(() => {
-    app.listen(PORT, () => console.log(`Tiffin Tracker API running on port ${PORT}`));
-  })
-  .catch((err) => {
-    console.error('Failed to initialize database:', err.message);
-    process.exit(1);
-  });
+// Make sure tables exist. Runs once per cold start on serverless platforms,
+// and once at startup when run as a normal long-lived server.
+initDb().catch((err) => {
+  console.error('Failed to initialize database:', err.message);
+});
+
+if (require.main === module) {
+  // Running directly with `node src/index.js` (local dev, or a traditional host)
+  app.listen(PORT, () => console.log(`Tiffin Tracker API running on port ${PORT}`));
+}
+
+// On Vercel, the platform imports this exported app and calls it per-request
+// instead of running app.listen().
+module.exports = app;

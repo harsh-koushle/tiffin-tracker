@@ -57,38 +57,50 @@ git remote add origin https://github.com/YOUR-USERNAME/tiffin-tracker.git
 git push -u origin main
 ```
 
-## 3. Deploy to Render
+## 3. Deploy for free, with no credit card, on Vercel + Neon
 
-**Option A — One-click Blueprint (easiest)**
-1. Go to the Render Dashboard → **New** → **Blueprint**.
-2. Connect the GitHub repo you just pushed.
-3. Render reads `render.yaml` and creates three things automatically:
-   - `tiffin-db` — a free PostgreSQL database
-   - `tiffin-backend` — the API (Node web service), wired to the database, with `JWT_SECRET` auto-generated
-   - `tiffin-frontend` — the static frontend site
-4. Click **Apply**. Wait for both services to finish deploying.
+This path never asks for a card: **Neon** for a permanent free Postgres database, **Vercel** for both the backend and frontend.
 
-**Option B — Manual setup**, if you'd rather do it by hand or the Blueprint step fails:
-1. **New → PostgreSQL** → name it, free plan → create. Copy the "Internal Connection String".
-2. **New → Web Service** → connect your repo → set **Root Directory** to `backend` → Build Command `npm install` → Start Command `npm start`. Add environment variables: `DATABASE_URL` (paste the connection string), `JWT_SECRET` (any long random string), `NODE_ENV=production`.
-3. **New → Static Site** → connect your repo → set **Root Directory** to `frontend` → leave Build Command empty → Publish Directory `.`.
+**Step A — Create the database (Neon)**
+1. Go to https://neon.tech → sign up (no card) → **Create a project**.
+2. On the project dashboard, copy the **connection string** (it looks like `postgresql://user:password@ep-xxxx.neon.tech/neondb?sslmode=require`).
 
-## 4. Connect the frontend to the backend
+**Step B — Deploy the backend (Vercel)**
+1. Go to https://vercel.com → sign up (no card) → **Add New** → **Project**.
+2. Import your `tiffin-tracker` GitHub repo.
+3. Set **Root Directory** to `backend`. Vercel auto-detects it as a Node/Express app — no build command needed.
+4. Add environment variables:
+   - `DATABASE_URL` → the Neon connection string from Step A
+   - `JWT_SECRET` → any long random string you make up
+5. Click **Deploy**. When it finishes, copy the backend's URL (looks like `https://tiffin-backend-xxxx.vercel.app`).
 
-Once `tiffin-backend` is live, copy its URL (looks like `https://tiffin-backend-xxxx.onrender.com`).
-
-Edit `frontend/config.js`:
+**Step C — Connect the frontend to the backend**
+Edit `frontend/config.js` locally:
 ```js
-const API_BASE_URL = "https://tiffin-backend-xxxx.onrender.com/api";
+const API_BASE_URL = "https://tiffin-backend-xxxx.vercel.app/api";
 ```
-Commit and push this change — Render will auto-redeploy the static site with the correct backend URL.
+Then:
+```bash
+git add frontend/config.js
+git commit -m "Point frontend at deployed backend"
+git push
+```
 
-## 5. Use it
+**Step D — Deploy the frontend (Vercel, second project)**
+1. Back in Vercel, **Add New** → **Project** → import the same repo again.
+2. Set **Root Directory** to `frontend`. Framework preset: **Other** (it's plain static HTML/CSS/JS).
+3. Click **Deploy**.
 
-Open your `tiffin-frontend` URL from any device, sign up, set your price buttons, and start tracking. Anyone else can open the same link and sign up with their own account — everyone's data stays separate.
+## 4. Use it
+
+Open the frontend's Vercel URL from any device, sign up, set your price buttons, and start tracking. Anyone else can open the same link and sign up with their own account — everyone's data stays separate.
+
+## Alternative: Render (asks for a card on free tier)
+
+A `render.yaml` Blueprint is also included if you'd rather use Render instead — note that Render currently requires adding a payment card for account verification even on its free tier (no charge unless you upgrade). If you go this route: Render Dashboard → **New** → **Blueprint** → connect this repo → **Apply**. See the comments in `render.yaml` for what it provisions.
 
 ## Notes and limits
 
-- **Render's free Postgres database expires after 30 days** and needs to be recreated (a Render platform limit, not something in this code). Fine for testing/personal use; upgrade the database plan on Render if you want it to persist indefinitely.
-- Free Render web services spin down after inactivity and take ~30–50 seconds to wake up on the next request — the first load after a while may feel slow.
+- Vercel's free functions "cold start" after inactivity — the first request after a quiet period may take a second or two longer.
+- Neon's free tier is permanent, but has storage/compute caps suited to small personal projects like this one.
 - History entries older than 7 days are cleaned up automatically whenever you load or reset.

@@ -1,8 +1,8 @@
 const { Pool } = require('pg');
 
-// Render's managed Postgres requires SSL from external connections.
-// Locally (no DATABASE_URL set to a render.com host) SSL is disabled.
-const useSsl = (process.env.DATABASE_URL || '').includes('render.com') || process.env.NODE_ENV === 'production';
+// Hosted Postgres providers (Neon, Render, Supabase, etc.) require SSL from
+// external connections. Only disable it for a plain local database.
+const useSsl = !(process.env.DATABASE_URL || '').includes('localhost');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
